@@ -12,6 +12,7 @@ SCRIPT_DIR=$PWD
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log" # /var/log/shell-script/16-logs.log
 START_TIME=$(date +%s)
 MONGODB_HOST=mongodb.ayaansh123.fun
+MYSQL_HOST=mysql.ayaansh123.fun
 
 
 mkdir -p $LOGS_FOLDER
@@ -43,6 +44,15 @@ nodejs_setup(){
 
     npm install &>>LOG_FILE
     VALIDATE $? "Installing dependencies"
+}
+
+java_setup(){
+    dnf install maven -y &>>$LOG_FILE
+    VALIDATE $? "Installing Maven"
+    mvn clean package &>>$LOG_FILE
+    VALIDATE $? "Packing the application"
+    mv target/shipping-1.0.jar shipping.jar &>>$LOG_FILE
+    VALIDATE $? "Renaming the artifact" 
 }
 
 app_setup(){
