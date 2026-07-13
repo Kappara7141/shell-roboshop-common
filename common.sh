@@ -1,5 +1,3 @@
-#!/bin/bash
-
 USERID=$(id -u)
 R="\e[31m"
 G="\e[32m"
@@ -8,22 +6,22 @@ N="\e[0m"
 
 LOGS_FOLDER="/var/log/shell-roboshop"
 SCRIPT_NAME=$( echo $0 | cut -d "." -f1 )
-SCRIPT_DIR=$PWD
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log" # /var/log/shell-script/16-logs.log
 START_TIME=$(date +%s)
+SCRIPT_DIR=$PWD # for absoulute path
 MONGODB_HOST=mongodb.ayaansh123.fun
 MYSQL_HOST=mysql.ayaansh123.fun
-
 
 mkdir -p $LOGS_FOLDER
 echo "Script started executed at: $(date)" | tee -a $LOG_FILE
 
 check_root(){
-if [ $USERID -ne 0 ]; then
-    echo "ERROR:: Please run this script with root privelege"
-    exit 1 # failure is other than 0
-fi
+    if [ $USERID -ne 0 ]; then
+        echo "ERROR:: Please run this script with root privelege"
+        exit 1 # failure is other than 0
+    fi
 }
+
 
 VALIDATE(){ # functions receive inputs through args just like shell script args
     if [ $1 -ne 0 ]; then
@@ -35,15 +33,15 @@ VALIDATE(){ # functions receive inputs through args just like shell script args
 }
 
 nodejs_setup(){
-    dnf module disable nodejs -y &>>LOG_FILE
+    dnf module disable nodejs -y &>>$LOG_FILE
     VALIDATE $? "Disabling NodeJS"
-    dnf module enable nodejs:20 -y &>>LOG_FILE
-    VALIDATE $? "Enabling NodeJS"
-    dnf install nodejs -y &>>LOG_FILE
+    dnf module enable nodejs:20 -y  &>>$LOG_FILE
+    VALIDATE $? "Enabling NodeJS 20"
+    dnf install nodejs -y &>>$LOG_FILE
     VALIDATE $? "Installing NodeJS"
 
-    npm install &>>LOG_FILE
-    VALIDATE $? "Installing dependencies"
+    npm install &>>$LOG_FILE
+    VALIDATE $? "Install dependencies"
 }
 
 java_setup(){
@@ -52,17 +50,16 @@ java_setup(){
     mvn clean package &>>$LOG_FILE
     VALIDATE $? "Packing the application"
     mv target/shipping-1.0.jar shipping.jar &>>$LOG_FILE
-    VALIDATE $? "Renaming the artifact" 
+    VALIDATE $? "Renaming the artifact"
 }
 
 python_setup(){
-    dnf install maven -y &>>$LOG_FILE
-    VALIDATE $? "Installing Maven"
-    mvn clean package &>>$LOG_FILE
-    VALIDATE $? "Packing the application"
-    mv target/shipping-1.0.jar shipping.jar &>>$LOG_FILE
-    VALIDATE $? "Renaming the artifact"
+    dnf install python3 gcc python3-devel -y &>>$LOG_FILE
+    VALIDATE $? "Installing Python3"
+    pip3 install -r requirements.txt &>>$LOG_FILE
+    VALIDATE $? "Installing dependencies"
 }
+
 app_setup(){
     id roboshop &>>$LOG_FILE
     if [ $? -ne 0 ]; then
@@ -88,8 +85,9 @@ app_setup(){
 }
 
 systemd_setup(){
-    cp $SCRIPT_DIR/$app_name.service /etc/systemd/system/$app_name.service 
-    VALIDATE $? "copy systemctl service"
+    cp $SCRIPT_DIR/$app_name.service /etc/systemd/system/$app_name.service
+    VALIDATE $? "Copy systemctl service"
+
     systemctl daemon-reload
     systemctl enable $app_name &>>$LOG_FILE
     VALIDATE $? "Enable $app_name"
@@ -100,7 +98,7 @@ app_restart(){
     VALIDATE $? "Restarted $app_name"
 }
 print_total_time(){
-END_TIME=$(date +%s)
-TOTAL_TIME=$(($END_TIME - $START_TIME))
-echo -e "Script executed in: $Y $TOTAL_TIME in Seconds $N"
+    END_TIME=$(date +%s)
+    TOTAL_TIME=$(( $END_TIME - $START_TIME ))
+    echo -e "Script executed in: $Y $TOTAL_TIME Seconds $N"
 }
